@@ -1,28 +1,24 @@
 import logging as log
 import os
 from datetime import datetime, timedelta
-from typing import List, Tuple
-from dateutil.relativedelta import relativedelta
 from glob import glob
+from operator import eq, gt
 from time import perf_counter
-from pendulum.constants import YEARS_PER_CENTURY
-from operator import lt, gt, eq
 
 import numpy as np
 import xarray as xr
+from botocore.exceptions import ClientError
+from dateutil.relativedelta import relativedelta
+from pendulum.pendulum import Pendulum
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.utils.helpers import chain
 from airflow.operators import DataQualityOperator
-from botocore.exceptions import ClientError
-from pendulum.pendulum import Pendulum
-from collections import namedtuple
-
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.python_operator import PythonOperator
+from airflow.utils.helpers import chain
 
 S3_BUCKET = "era5-pds"
 DATA_PATH = "{year}/{month}/data/{var}.nc"
@@ -32,7 +28,6 @@ AWS_CONN_ID = "aws"
 TEMPDATA = os.path.join(os.environ["AIRFLOW_HOME"], "tempdata")
 if not os.path.isdir(TEMPDATA):
     os.mkdir(TEMPDATA)
-
 
 ERA5_VARS = [
     "snow_density",
@@ -58,25 +53,35 @@ DAYS_ON_TABLE_QUERY = """DROP TABLE IF EXISTS TTBL;
 
 
 class Ti:
+    """Used to mock Airflow context.execution_date content"""
     execution_date = Pendulum.now()
 
 
 class FilterCoords:
-    """South america. """
+    """South america."""
 
-    # lat_min, lat_max = -50, 10
-    # lon_min, lon_max = 100, 150
-    lat_min, lat_max = -5, 10
-    lon_min, lon_max = 10, 15
+    lat_min, lat_max = -50, 10
+    lon_min, lon_max = 100, 150
 
 
 def uv_to_wswd(u, v):
+    """Converts U and V wind components to wind speed and direction
+
+    Args:
+        u : U Component
+        v : V Component
+
+    Returns:
+        wind_speed, wind_direction
+    """
     ws = np.sqrt(u ** 2 + v ** 2)
     wd = 180 + (180 / np.pi) * np.arctan2(u, v)
     return ws, wd
 
 
 def wind_speed_direction():
+    """Loads wind data from postgress, converts and saves back"""
+
     hook = PostgresHook(WEATHERDB_CONN_ID)
     wdf = hook.get_pandas_df(
         """SELECT u100.time0,
@@ -121,6 +126,8 @@ def wind_speed_direction():
 
 
 def check_new(**context):
+    """Verify if the dataset is avaialble for the context month"""
+
     _date = context.get("ti", Ti).execution_date - relativedelta(months=1)
     expected_file = f"{_date.year}/{_date.month}/main.nc"
 
@@ -136,12 +143,19 @@ def check_new(**context):
 
 
 def reset_tempdata():
+    """Removes local data files from previous runs"""
+
     for fl in glob(os.path.join(TEMPDATA, "*.*")):
         log.info(f"Deleting {fl}")
-        # os.remove(fl)
+        os.remove(fl)
 
 
 def download_datafile(var_name: str, **context):
+    """Downloads the datafile for a given dataset
+
+    Args:
+        var_name (str): ERA5 dataset name
+    """
     _date = context.get("ti", Ti).execution_date - relativedelta(months=1)
 
     remote_file = f"{_date.year}/{_date.month}/data/{var_name}.nc"
@@ -150,10 +164,16 @@ def download_datafile(var_name: str, **context):
     s3 = S3Hook(aws_conn_id="aws")
     bucket = s3.get_bucket(S3_BUCKET)
     log.info(f"\nDownloading s3://{S3_BUCKET}/{remote_file} to {local_file}\n")
-    # bucket.download_file(remote_file, local_file)
+    bucket.download_file(remote_file, local_file)
 
 
 def stage_dataset(var):
+    """Saves data from de xarray files into Postgres using the COPY command.
+
+    Args:
+        var (str): ERA5 dataset name
+    """
+
     hook = PostgresHook(WEATHERDB_CONN_ID)
     dataset = xr.open_dataset(os.path.join(TEMPDATA, f"{var}.nc"))
 
@@ -185,6 +205,15 @@ def stage_dataset(var):
 
 
 def test_result(math_operator: callable, expected_result: int):
+    """Returns a function for a givem math_operators. Used to facilitate testing
+
+    Args:
+        math_operator (callable): Math operator function
+        expected_result (int): Result expected
+
+    Returns:
+        callable: lambda used with the Dataquality operator
+    """
     return lambda r, _: math_operator(r[0], expected_result)
 
 
@@ -285,9 +314,9 @@ with DAG(
         ),
     )
     data_quality_time = DataQualityOperator(
-        task_id=f"data_quality_time",
+        task_id="data_quality_time",
         conn_id=WEATHERDB_CONN_ID,
-        test_cases=(("SELECT COUNT(time0) FROM db.era5_data", test_result(gt, 10000)),),
+        test_cases=(("SELECT COUNT(ts) FROM db.era5_data", test_result(gt, 10000)),),
     )
     chain(join_datasets, [data_quality_coords, data_quality_time])
     for var in ERA5_VARS:
