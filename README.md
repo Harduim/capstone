@@ -107,6 +107,8 @@ Staging data goes to the 'staging' schema and the final data to the schema 'db'.
 
 ## ETL
 
+![dag_airflow](dag_airflow.png)
+
  - Task checks if data for the respective dag run is available
  - Xarray files are downloaded from S3 using the Boto3 library
  - Using bulting feature of xarray to filter, by coordinates, and convert chunks of data into Pandas Dataframes
@@ -115,7 +117,6 @@ Staging data goes to the 'staging' schema and the final data to the schema 'db'.
  - Wind direction and Wind speed are calculated from V and U wind components
  - Staged data is joined and added to the final table
  - Other dataquality checks are made
-
 
 
 # Addressing Other Scenarios
