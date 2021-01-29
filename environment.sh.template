@@ -4,8 +4,8 @@
 export AIRFLOW_HOME=  # Full path to the project folder
 export POSTGRES_PASSWORD= # The postgre container will be created using this password 
 
-export AWS_KEY=AKIAXRG6QKNFDXHZR3WF
-export AWS_SECRET=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
+export AWS_KEY=
+export AWS_SECRET=
 
 
 ########################
