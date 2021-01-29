@@ -1,0 +1,12 @@
+name: capstone
+channels:
+  - defaults
+dependencies:
+  - pyspark
+  - psycopg2
+  - sqlalchemy
+  - xarray
+  - netcdf4
+  - pip
+  - pip:
+    - sqlalchemy-redshift

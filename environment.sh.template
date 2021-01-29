@@ -1,0 +1,31 @@
+########################
+## Shoud fill
+########################
+export AIRFLOW_HOME=  # Full path to the project folder
+export POSTGRES_PASSWORD= # The postgre container will be created using this password 
+
+export AWS_KEY=AKIAXRG6QKNFDXHZR3WF
+export AWS_SECRET=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
+
+
+########################
+## Can customize
+########################
+export POSTGRES_USER=airflow # The container will be created using this user 
+export POSTGRES_DATABASE=airflow_db # The container setup will create this database 
+export POSTGRES_CONTAINER_NAME=pg_capstone # Self explanatory
+
+export AIRFLOW__CORE__DEFAULT_TIMEZONE="America/Sao_Paulo" # Self explanatory
+export AIRFLOW__CORE__SCHEDULER_HEARTBEAT_SEC="30" # Self explanatory
+export AIRFLOW__CORE__MIN_FILE_PROCESS_INTERVAL="300" # Self explanatory
+# Checkout the Airflow environment docs for more info
+
+
+########################
+## Should not alter
+########################
+# Core Airflow database conection
+export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:54320/$POSTGRES_DATABASE"
+
+# AWS credentials
+export AIRFLOW_CONN_AWS="aws://$AWS_KEY:$AWS_SECRET@"
