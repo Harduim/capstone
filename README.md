@@ -136,7 +136,7 @@ A couple of Redshift nodes could handle that.
 
 ### PostgreSQL
 - Easier migration to Redshift if needed.
-- I want to chalange myself since I'm very proficient in SQL Server
+- I want to challenge myself since I'm very proficient in SQL Server
 
 ### Airflow
 - It is made in python, good integration with the other tools required.
