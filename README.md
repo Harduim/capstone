@@ -231,4 +231,4 @@ airflow db init
 - Start airflow running the script `./start.sh`
 - Stop airflow killing the processes `pkill -f airflow`
 
-DISCLAIMER: This setup is suited for production! Check out the Airflow [documentation](https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html) for best practices
+DISCLAIMER: This setup NOT is suited for production! Check out the Airflow [documentation](https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html) for best practices
